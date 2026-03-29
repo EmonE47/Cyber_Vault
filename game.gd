@@ -54,33 +54,33 @@ const DIRS = [
 	Vector2i(0, -1)
 ]
 
-const BG = Color(0.02, 0.04, 0.07)
-const BG_ALT = Color(0.05, 0.08, 0.11)
-const PANEL = Color(0.07, 0.1, 0.14, 0.96)
-const PANEL_SOFT = Color(0.08, 0.12, 0.17, 0.92)
-const PANEL_BORDER = Color(0.23, 0.4, 0.48, 0.92)
-const PANEL_GLOW = Color(0.18, 0.82, 0.92, 0.35)
-const FLOOR = Color(0.09, 0.12, 0.16)
-const FLOOR_ALT = Color(0.12, 0.16, 0.2)
-const GRID = Color(0.24, 0.33, 0.37, 0.28)
-const WALL = Color(0.03, 0.04, 0.06)
-const WALL_EDGE = Color(0.13, 0.16, 0.2)
-const SLEEP_ROOM = Color(0.11, 0.22, 0.26)
-const SLEEP_BORDER = Color(0.29, 0.63, 0.7)
-const GHOST = Color(0.9, 0.96, 1.0)
-const GHOST_ACCENT = Color(0.28, 0.87, 0.98)
-const WARDEN = Color(0.96, 0.34, 0.31)
-const WARDEN_ACCENT = Color(1.0, 0.74, 0.31)
-const TERMINAL = Color(0.05, 0.84, 0.95)
-const HACKED = Color(1.0, 0.84, 0.24)
-const EXIT_OFF = Color(0.15, 0.27, 0.17)
-const EXIT_ON = Color(0.2, 0.9, 0.33)
-const TEXT = Color(0.95, 0.98, 1.0)
-const DIM = Color(0.69, 0.77, 0.82)
-const MUTED = Color(0.44, 0.53, 0.58)
-const ALERT = Color(1.0, 0.67, 0.16)
-const GOOD = Color(0.25, 0.88, 0.46)
-const SHADE = Color(0, 0, 0, 0.76)
+const BG = Color(0.09, 0.1, 0.11)
+const BG_ALT = Color(0.15, 0.16, 0.17)
+const PANEL = Color(0.16, 0.17, 0.18, 0.97)
+const PANEL_SOFT = Color(0.2, 0.21, 0.22, 0.94)
+const PANEL_BORDER = Color(0.42, 0.43, 0.43, 0.96)
+const PANEL_GLOW = Color(0.7, 0.72, 0.68, 0.16)
+const FLOOR = Color(0.22, 0.23, 0.24)
+const FLOOR_ALT = Color(0.25, 0.26, 0.27)
+const GRID = Color(0.52, 0.52, 0.49, 0.18)
+const WALL = Color(0.1, 0.1, 0.11)
+const WALL_EDGE = Color(0.29, 0.29, 0.3)
+const SLEEP_ROOM = Color(0.18, 0.25, 0.28)
+const SLEEP_BORDER = Color(0.5, 0.59, 0.62)
+const GHOST = Color(0.74, 0.77, 0.8)
+const GHOST_ACCENT = Color(0.44, 0.53, 0.58)
+const WARDEN = Color(0.47, 0.34, 0.31)
+const WARDEN_ACCENT = Color(0.77, 0.64, 0.43)
+const TERMINAL = Color(0.44, 0.67, 0.52)
+const HACKED = Color(0.86, 0.66, 0.28)
+const EXIT_OFF = Color(0.2, 0.22, 0.2)
+const EXIT_ON = Color(0.39, 0.63, 0.43)
+const TEXT = Color(0.91, 0.91, 0.88)
+const DIM = Color(0.7, 0.71, 0.68)
+const MUTED = Color(0.52, 0.53, 0.5)
+const ALERT = Color(0.86, 0.57, 0.24)
+const GOOD = Color(0.43, 0.64, 0.44)
+const SHADE = Color(0, 0, 0, 0.8)
 
 var font = null
 var rng = RandomNumberGenerator.new()
@@ -887,11 +887,13 @@ func _draw():
 
 func draw_backdrop():
 	draw_rect(Rect2(0, 0, SCREEN_W, SCREEN_H), BG)
-	draw_rect(Rect2(0, 0, SCREEN_W, SCREEN_H * 0.4), alpha_color(BG_ALT, 0.5))
-	for y in range(0, SCREEN_H, 24):
-		draw_line(Vector2(0, y), Vector2(SCREEN_W, y), alpha_color(TEXT, 0.018), 1.0)
-	for x in range(-SCREEN_H, SCREEN_W, 44):
-		draw_line(Vector2(x, 0), Vector2(x + SCREEN_H, SCREEN_H), alpha_color(PANEL_GLOW, 0.035), 1.0)
+	draw_rect(Rect2(0, 0, SCREEN_W, SCREEN_H * 0.45), alpha_color(BG_ALT, 0.32))
+	for y in range(0, SCREEN_H, 20):
+		draw_line(Vector2(0, y), Vector2(SCREEN_W, y), alpha_color(TEXT, 0.012), 1.0)
+	for x in range(0, SCREEN_W, 64):
+		draw_line(Vector2(x, 0), Vector2(x, SCREEN_H), alpha_color(PANEL_GLOW, 0.025), 1.0)
+	draw_rect(Rect2(0, 0, SCREEN_W, 12), alpha_color(Color.BLACK, 0.18))
+	draw_rect(Rect2(0, SCREEN_H - 12, SCREEN_W, 12), alpha_color(Color.BLACK, 0.22))
 
 
 func draw_header():
@@ -899,11 +901,11 @@ func draw_header():
 	var rect_end = rect.position + rect.size
 	draw_panel(rect, PANEL, PANEL_BORDER)
 	draw_string(font, rect.position + Vector2(20, 30), "MARK47", HORIZONTAL_ALIGNMENT_LEFT, -1, 30, TEXT)
-	draw_string(font, rect.position + Vector2(20, 56), "CYBER VAULT // SILENT INFILTRATION", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, GHOST_ACCENT)
+	draw_string(font, rect.position + Vector2(20, 56), "FACILITY A17 // INTERNAL SECURITY FEED", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, DIM)
 	draw_chip(Rect2(rect.position.x + 250, rect.position.y + 18, 124, 26), ghost_mode_name().to_upper(), GHOST_ACCENT, true)
 	draw_chip(Rect2(rect_end.x - 170, rect.position.y + 18, 150, 26), "THREAT " + danger_label(), danger_color(), true)
-	draw_string(font, Vector2(rect_end.x - 196, rect.position.y + 34), "WARDEN " + short_ai_state(), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, ai_state_color())
-	draw_string(font, Vector2(rect_end.x - 196, rect.position.y + 56), "MISSION CLOCK  " + format_time(mission_time), HORIZONTAL_ALIGNMENT_LEFT, -1, 15, DIM)
+	draw_string(font, Vector2(rect_end.x - 220, rect.position.y + 34), "SECURITY STATE  " + short_ai_state(), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, ai_state_color())
+	draw_string(font, Vector2(rect_end.x - 220, rect.position.y + 56), "ELAPSED  " + format_time(mission_time), HORIZONTAL_ALIGNMENT_LEFT, -1, 15, DIM)
 
 
 func draw_world_frame():
@@ -911,17 +913,15 @@ func draw_world_frame():
 	var rect = world_rect()
 	var rect_end = rect.position + rect.size
 	draw_panel(outer, PANEL, PANEL_BORDER)
-	draw_rect(rect, alpha_color(Color(0.01, 0.02, 0.03), 0.55))
-	draw_line(rect.position + Vector2(14, 0), rect.position + Vector2(110, 0), alpha_color(PANEL_GLOW, 0.55), 2.0)
-	draw_line(rect.position + Vector2(0, 14), rect.position + Vector2(0, 110), alpha_color(PANEL_GLOW, 0.55), 2.0)
-	draw_line(Vector2(rect_end.x - 14, rect.position.y), Vector2(rect_end.x - 110, rect.position.y), alpha_color(PANEL_GLOW, 0.55), 2.0)
-	draw_line(Vector2(rect_end.x, rect.position.y + 14), Vector2(rect_end.x, rect.position.y + 110), alpha_color(PANEL_GLOW, 0.55), 2.0)
-	draw_line(Vector2(rect.position.x, rect_end.y - 14), Vector2(rect.position.x, rect_end.y - 110), alpha_color(PANEL_GLOW, 0.55), 2.0)
-	draw_line(Vector2(rect.position.x + 14, rect_end.y), Vector2(rect.position.x + 110, rect_end.y), alpha_color(PANEL_GLOW, 0.55), 2.0)
-	draw_line(Vector2(rect_end.x - 14, rect_end.y), Vector2(rect_end.x - 110, rect_end.y), alpha_color(PANEL_GLOW, 0.55), 2.0)
-	draw_line(Vector2(rect_end.x, rect_end.y - 14), Vector2(rect_end.x, rect_end.y - 110), alpha_color(PANEL_GLOW, 0.55), 2.0)
-	draw_string(font, rect.position + Vector2(18, -8), "VAULT GRID A17", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, GHOST_ACCENT)
-	draw_string(font, Vector2(rect_end.x - 112, rect_end.y + 18), "LOS // NOISE", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, MUTED)
+	draw_rect(rect, alpha_color(Color(0.04, 0.04, 0.05), 0.86))
+	draw_rect(rect.grow(8), alpha_color(Color.BLACK, 0.12), false, 1.0)
+	draw_line(rect.position + Vector2(0, 1), Vector2(rect_end.x, rect.position.y + 1), alpha_color(TEXT, 0.12), 2.0)
+	draw_line(rect.position + Vector2(1, 0), Vector2(rect.position.x + 1, rect_end.y), alpha_color(TEXT, 0.08), 2.0)
+	draw_line(Vector2(rect.position.x, rect_end.y - 1), Vector2(rect_end.x, rect_end.y - 1), alpha_color(Color.BLACK, 0.28), 2.0)
+	draw_line(Vector2(rect_end.x - 1, rect.position.y), Vector2(rect_end.x - 1, rect_end.y), alpha_color(Color.BLACK, 0.28), 2.0)
+	draw_string(font, rect.position + Vector2(18, -8), "SECTOR A17 MAP", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, DIM)
+	draw_string(font, Vector2(rect_end.x - 138, rect_end.y + 18), "VISION / NOISE", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, MUTED)
+	draw_corner_bolts(outer)
 
 
 func draw_world():
@@ -929,22 +929,36 @@ func draw_world():
 		for x in range(GRID_W):
 			var tile = Vector2i(x, y)
 			var rect = tile_rect(tile)
+			var wear = tile_wear(tile)
 			if wall_lookup.has(tile):
 				draw_rect(rect, WALL)
-				draw_rect(rect.grow(-3), alpha_color(WALL_EDGE, 0.32))
+				draw_rect(rect.grow(-2), alpha_color(WALL_EDGE, 0.26 + wear * 0.08))
+				draw_line(rect.position + Vector2(0, 1), rect.position + Vector2(rect.size.x, 1), alpha_color(TEXT, 0.05), 1.0)
+				draw_line(rect.position + Vector2(1, 0), rect.position + Vector2(1, rect.size.y), alpha_color(TEXT, 0.04), 1.0)
+				draw_line(rect.position + Vector2(rect.size.x - 1, 0), rect.position + Vector2(rect.size.x - 1, rect.size.y), alpha_color(Color.BLACK, 0.18), 1.0)
+				draw_line(rect.position + Vector2(0, rect.size.y - 1), rect.position + Vector2(rect.size.x, rect.size.y - 1), alpha_color(Color.BLACK, 0.18), 1.0)
 			else:
 				var floor_color = FLOOR if (x + y) % 2 == 0 else FLOOR_ALT
 				draw_rect(rect, floor_color)
+				draw_line(rect.position + Vector2(0, rect.size.y - 1), rect.position + Vector2(rect.size.x, rect.size.y - 1), alpha_color(Color.BLACK, 0.12), 1.0)
+				draw_line(rect.position + Vector2(rect.size.x - 1, 0), rect.position + Vector2(rect.size.x - 1, rect.size.y), alpha_color(Color.BLACK, 0.12), 1.0)
+				draw_rect(Rect2(rect.position + Vector2(4, 4), Vector2(rect.size.x - 8, 6)), alpha_color(TEXT, 0.015 + wear * 0.018))
+				if int(wear * 10.0) % 3 == 0:
+					draw_line(rect.position + Vector2(8, 24), rect.position + Vector2(rect.size.x - 7, 20), alpha_color(Color.BLACK, 0.08), 1.0)
 				draw_rect(rect, GRID, false, 1.0)
-				draw_rect(Rect2(rect.position + Vector2(3, 3), rect.size - Vector2(6, 6)), alpha_color(TEXT, 0.012), false, 1.0)
 				if sleep_lookup.has(tile):
-					draw_rect(rect.grow(-4), alpha_color(SLEEP_ROOM, 0.95))
-					draw_rect(rect.grow(-5), alpha_color(SLEEP_BORDER, 0.6), false, 1.0)
-					draw_line(rect.position + Vector2(8, rect.size.y - 10), rect.position + Vector2(rect.size.x - 8, 10), alpha_color(SLEEP_BORDER, 0.2), 1.0)
+					var room = rect.grow(-4)
+					draw_rect(room, alpha_color(SLEEP_ROOM, 0.95))
+					draw_rect(room, alpha_color(SLEEP_BORDER, 0.55), false, 1.0)
+					var bunk = Rect2(room.position + Vector2(5, 7), Vector2(room.size.x - 10, 11))
+					draw_rect(bunk, alpha_color(TEXT, 0.08))
+					draw_rect(Rect2(bunk.position + Vector2(2, 2), Vector2(bunk.size.x - 4, bunk.size.y - 4)), alpha_color(TEXT, 0.16))
+					draw_rect(Rect2(room.position + Vector2(room.size.x - 8, 5), Vector2(4, room.size.y - 10)), alpha_color(SLEEP_BORDER, 0.24))
+					draw_line(rect.position + Vector2(7, rect.size.y - 9), rect.position + Vector2(rect.size.x - 7, 9), alpha_color(SLEEP_BORDER, 0.12), 1.0)
 				var heat_value = float(heat[y][x])
 				if heat_value > 0.25:
 					var alpha = minf(0.22, heat_value * 0.03)
-					draw_circle(tile_center(tile), 9.0 + heat_value * 2.4, alpha_color(ALERT, alpha))
+					draw_circle(tile_center(tile), 8.0 + heat_value * 2.0, alpha_color(ALERT, alpha))
 
 	for terminal in terminal_tiles:
 		draw_terminal(terminal, terminal_tiles.find(terminal) + 1)
@@ -964,26 +978,37 @@ func draw_world():
 
 func draw_terminal(terminal, index):
 	var pulse = 0.5 + 0.5 * sin(ambient_time * 4.0 + float(index))
-	var rect = Rect2(terminal.x * TILE_SIZE + WORLD_OFFSET_X + 9, terminal.y * TILE_SIZE + WORLD_OFFSET_Y + 9, TILE_SIZE - 18, TILE_SIZE - 18)
-	var fill = HACKED if hacked_lookup.has(terminal) else Color(0.04, 0.25 + pulse * 0.18, 0.31 + pulse * 0.12)
-	var outline = HACKED if hacked_lookup.has(terminal) else TERMINAL
-	draw_rect(rect, fill)
-	draw_rect(rect.grow(4), alpha_color(outline, 0.28 + pulse * 0.1), false, 2.0)
-	draw_rect(Rect2(rect.position + Vector2(4, 4), rect.size - Vector2(8, 8)), alpha_color(TEXT, 0.07), false, 1.0)
-	draw_line(rect.position + Vector2(5, rect.size.y * 0.58), rect.position + Vector2(rect.size.x - 5, rect.size.y * 0.58), alpha_color(TEXT, 0.18), 1.0)
-	draw_string(font, rect.position + Vector2(5, 16), "T" + str(index), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, TEXT)
+	var tile = tile_rect(terminal)
+	var desk = Rect2(tile.position + Vector2(5, 23), Vector2(TILE_SIZE - 10, 8))
+	var monitor_frame = Rect2(tile.position + Vector2(9, 8), Vector2(TILE_SIZE - 18, 12))
+	var monitor_glow = HACKED if hacked_lookup.has(terminal) else TERMINAL
+	draw_rect(desk, alpha_color(WALL_EDGE, 0.85))
+	draw_rect(Rect2(desk.position + Vector2(2, 1), Vector2(desk.size.x - 4, desk.size.y - 2)), alpha_color(Color(0.11, 0.11, 0.12), 0.95))
+	draw_rect(Rect2(tile.position + Vector2(TILE_SIZE * 0.5 - 1, 20), Vector2(2, 5)), alpha_color(WALL_EDGE, 0.9))
+	draw_rect(monitor_frame, alpha_color(WALL_EDGE, 0.88))
+	draw_rect(Rect2(monitor_frame.position + Vector2(2, 2), Vector2(monitor_frame.size.x - 4, monitor_frame.size.y - 4)), alpha_color(monitor_glow, 0.7 + pulse * 0.1))
+	draw_line(monitor_frame.position + Vector2(3, monitor_frame.size.y - 4), monitor_frame.position + Vector2(monitor_frame.size.x - 3, monitor_frame.size.y - 4), alpha_color(TEXT, 0.1), 1.0)
+	draw_rect(Rect2(tile.position + Vector2(12, 32), Vector2(TILE_SIZE - 24, 3)), alpha_color(Color.BLACK, 0.3))
+	draw_string(font, tile.position + Vector2(5, 16), "PC" + str(index), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, TEXT)
 	if hack_target == terminal:
-		draw_rect(rect.grow(7), alpha_color(ALERT, 0.8), false, 2.0)
+		draw_rect(monitor_frame.grow(6), alpha_color(ALERT, 0.7), false, 2.0)
 		draw_circle(tile_center(terminal), 18.0 + pulse * 5.0, alpha_color(ALERT, 0.12))
 
 
 func draw_exit_tile():
 	var pulse = 0.5 + 0.5 * sin(ambient_time * 3.2)
 	var fill = EXIT_ON if all_hacked() else EXIT_OFF
-	var rect = Rect2(exit_tile.x * TILE_SIZE + WORLD_OFFSET_X + 10, exit_tile.y * TILE_SIZE + WORLD_OFFSET_Y + 10, TILE_SIZE - 20, TILE_SIZE - 20)
-	draw_rect(rect, fill)
-	draw_rect(rect.grow(5), alpha_color(fill, 0.35 + pulse * 0.18), false, 2.0)
-	draw_string(font, rect.position + Vector2(4, 16), "EX", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, TEXT)
+	var rect = Rect2(exit_tile.x * TILE_SIZE + WORLD_OFFSET_X + 6, exit_tile.y * TILE_SIZE + WORLD_OFFSET_Y + 6, TILE_SIZE - 12, TILE_SIZE - 12)
+	var half_w = rect.size.x * 0.5 - 2.0
+	var left = Rect2(rect.position + Vector2(2, 2), Vector2(half_w, rect.size.y - 4))
+	var right = Rect2(Vector2(rect.position.x + rect.size.x - half_w - 2.0, rect.position.y + 2), Vector2(half_w, rect.size.y - 4))
+	draw_rect(rect, alpha_color(WALL_EDGE, 0.82))
+	draw_rect(left, fill.darkened(0.12))
+	draw_rect(right, fill)
+	draw_line(Vector2(rect.position.x + rect.size.x * 0.5, rect.position.y + 3), Vector2(rect.position.x + rect.size.x * 0.5, rect.position.y + rect.size.y - 3), alpha_color(Color.BLACK, 0.28), 1.0)
+	draw_rect(Rect2(rect.position + Vector2(6, 4), Vector2(rect.size.x - 12, 3)), alpha_color(TEXT, 0.08))
+	draw_rect(Rect2(rect.position + Vector2(rect.size.x * 0.5 - 3, 6), Vector2(6, 4)), alpha_color(fill, 0.65 + pulse * 0.2))
+	draw_string(font, rect.position + Vector2(6, 16), "EXIT", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, TEXT)
 
 
 func draw_vision_tiles():
@@ -1006,33 +1031,44 @@ func draw_world_scanlines():
 func draw_ghost_actor(pos):
 	var facing = unit_dir(ghost_facing)
 	var side = Vector2(-facing.y, facing.x)
-	var body = PackedVector2Array([
-		pos + facing * 14.0,
-		pos + side * 10.0 + facing * 2.0,
-		pos - facing * 11.0,
-		pos - side * 10.0 + facing * 2.0
+	var torso = PackedVector2Array([
+		pos + side * 8.0 + facing * 2.0,
+		pos + side * 6.0 - facing * 7.0,
+		pos - side * 6.0 - facing * 7.0,
+		pos - side * 8.0 + facing * 2.0
 	])
-	draw_circle(pos, 18.0 + (0.5 + 0.5 * sin(ambient_time * 5.0)) * 2.0, alpha_color(GHOST_ACCENT, 0.14))
-	draw_colored_polygon(body, alpha_color(GHOST, 0.96))
-	draw_circle(pos, 7.0, alpha_color(GHOST_ACCENT, 0.18))
-	draw_circle(pos + facing * 5.0, 3.0, GHOST_ACCENT)
+	var leg_left = pos + side * 3.0 + facing * 8.0
+	var leg_right = pos - side * 3.0 + facing * 8.0
+	draw_circle(pos + Vector2(2, 3), 11.0, alpha_color(Color.BLACK, 0.22))
+	draw_colored_polygon(torso, alpha_color(GHOST, 0.96))
+	draw_circle(pos - facing * 10.0, 4.5, alpha_color(TEXT, 0.78))
+	draw_circle(leg_left, 2.6, alpha_color(GHOST_ACCENT, 0.65))
+	draw_circle(leg_right, 2.6, alpha_color(GHOST_ACCENT, 0.65))
+	draw_line(pos - side * 5.0 - facing * 1.0, pos - side * 8.0 + facing * 4.0, alpha_color(GHOST_ACCENT, 0.55), 2.0)
+	draw_line(pos + side * 5.0 - facing * 1.0, pos + side * 8.0 + facing * 4.0, alpha_color(GHOST_ACCENT, 0.55), 2.0)
 
 
 func draw_warden_actor(pos):
 	var facing = unit_dir(warden_facing)
 	var side = Vector2(-facing.y, facing.x)
-	var body = PackedVector2Array([
-		pos + facing * 17.0,
-		pos + side * 11.0,
-		pos - facing * 8.0 + side * 9.0,
-		pos - facing * 14.0,
-		pos - facing * 8.0 - side * 9.0,
-		pos - side * 11.0
+	var torso = PackedVector2Array([
+		pos + side * 9.0 + facing * 1.0,
+		pos + side * 7.0 - facing * 8.0,
+		pos - side * 7.0 - facing * 8.0,
+		pos - side * 9.0 + facing * 1.0
 	])
-	draw_circle(pos, 20.0 + (0.5 + 0.5 * sin(ambient_time * 8.0)) * 1.8, alpha_color(WARDEN, 0.11))
-	draw_colored_polygon(body, alpha_color(WARDEN, 0.96))
-	draw_line(pos, pos + facing * 16.0, alpha_color(WARDEN_ACCENT, 0.95), 2.0)
-	draw_circle(pos + facing * 6.0, 3.0, WARDEN_ACCENT)
+	var beam = PackedVector2Array([
+		pos + facing * 5.0,
+		pos + facing * 30.0 + side * 10.0,
+		pos + facing * 30.0 - side * 10.0
+	])
+	draw_circle(pos + Vector2(2, 3), 12.0, alpha_color(Color.BLACK, 0.24))
+	draw_colored_polygon(beam, alpha_color(WARDEN_ACCENT, 0.055))
+	draw_colored_polygon(torso, alpha_color(WARDEN, 0.96))
+	draw_circle(pos - facing * 10.0, 4.6, alpha_color(TEXT, 0.74))
+	draw_line(pos + side * 6.0 - facing * 1.0, pos + side * 11.0 + facing * 5.0, alpha_color(WARDEN_ACCENT, 0.68), 2.0)
+	draw_line(pos - side * 6.0 - facing * 1.0, pos - side * 10.0 + facing * 6.0, alpha_color(WARDEN_ACCENT, 0.5), 2.0)
+	draw_line(pos, pos + facing * 14.0, alpha_color(Color.BLACK, 0.38), 2.0)
 
 
 func draw_hack_feedback(ghost_pos):
@@ -1065,11 +1101,11 @@ func draw_sidebar():
 func draw_mission_card(rect):
 	draw_panel(rect, PANEL_SOFT, PANEL_BORDER)
 	draw_card_title(rect, "MISSION", TERMINAL)
-	draw_string(font, rect.position + Vector2(14, 52), "Breach every terminal and exfiltrate unseen.", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, TEXT)
+	draw_string(font, rect.position + Vector2(14, 52), "Move room to room, access the computers, and get out unseen.", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, TEXT)
 	draw_text_lines([
 		"Route: " + objective_summary(),
-		"Cover: sleep chambers block the Warden's vision.",
-		"Noise: sprinting and hacks leave a trace."
+		"Rooms: pod rooms block the Warden's line of sight.",
+		"Noise: sprinting and computer access leave a trace."
 	], rect.position + Vector2(14, 74), 14, 19, DIM)
 	var chip_y = rect.position.y + rect.size.y - 34
 	draw_chip(Rect2(rect.position.x + 14, chip_y, 124, 24), "1 HUMAN PILOT", GHOST_ACCENT, ghost_mode == GHOST_MODE_HUMAN)
@@ -1082,7 +1118,7 @@ func draw_systems_card(rect):
 	var x = rect.position.x + 14
 	var y = rect.position.y + 48
 	var w = rect.size.x - 28
-	draw_progress_bar(Rect2(x, y, w, 16), "TERMINAL CONTROL", hack_ratio(), TERMINAL, str(hacked_lookup.size()) + "/" + str(terminal_tiles.size()))
+	draw_progress_bar(Rect2(x, y, w, 16), "COMPUTER ACCESS", hack_ratio(), TERMINAL, str(hacked_lookup.size()) + "/" + str(terminal_tiles.size()))
 	y += 28
 	draw_progress_bar(Rect2(x, y, w, 16), "NOISE TRACE", noise_ratio(), ALERT, trace_text())
 	y += 28
@@ -1110,7 +1146,7 @@ func draw_controls_card(rect):
 	draw_card_title(rect, "CONTROLS", GOOD)
 	draw_text_lines([
 		"WASD move   Shift sprint",
-		"Face a terminal to auto-breach",
+		"Face a computer to start access",
 		"1 human pilot   2 AI pilot   R reset"
 	], rect.position + Vector2(14, 48), 14, 18, DIM)
 
@@ -1130,15 +1166,15 @@ func draw_briefing_overlay():
 	draw_rect(Rect2(0, 0, SCREEN_W, SCREEN_H), SHADE)
 	var rect = Rect2((SCREEN_W - 560) * 0.5, (SCREEN_H - 300) * 0.5, 560, 300)
 	draw_panel(rect, PANEL, PANEL_BORDER)
-	draw_string(font, rect.position + Vector2(24, 44), "DEPLOYMENT BRIEF", HORIZONTAL_ALIGNMENT_LEFT, -1, 28, TEXT)
-	draw_string(font, rect.position + Vector2(24, 72), "MARK47 is live inside the vault perimeter.", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, GHOST_ACCENT)
+	draw_string(font, rect.position + Vector2(24, 44), "MISSION BRIEF", HORIZONTAL_ALIGNMENT_LEFT, -1, 28, TEXT)
+	draw_string(font, rect.position + Vector2(24, 72), "MARK47 is inside the secured floor plan.", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, DIM)
 	draw_text_lines([
-		"Hack every terminal before the extraction gate powers up.",
-		"Sleep chambers block vision, but sprinting and hacking both leave a trace.",
+		"Access every computer before the exit door unlocks.",
+		"Rooms with sleep pods block vision, but sprinting and access both leave a trace.",
 		"Swap between human and AI pilot at any time with 1 and 2."
 	], rect.position + Vector2(24, 112), 16, 26, DIM)
 	draw_chip(Rect2(rect.position.x + 24, rect.position.y + 236, 240, 28), "SPACE OR MOVE TO DEPLOY", GOOD, true)
-	draw_string(font, rect.position + Vector2(24, 286), "The mission clock starts when you break cover.", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, MUTED)
+	draw_string(font, rect.position + Vector2(24, 286), "The clock starts when you move off the safe start tile.", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, MUTED)
 
 
 func draw_end_screen():
@@ -1151,14 +1187,16 @@ func draw_end_screen():
 	draw_text_lines([
 		"R restarts the run immediately.",
 		"1 and 2 still switch between human and AI pilot.",
-		"Use the mission card to plan a cleaner next route."
+		"Use the room layout to plan a cleaner next route."
 	], rect.position + Vector2(24, 132), 14, 22, DIM)
 
 
 func draw_panel(rect, fill, border):
 	draw_rect(rect, fill)
 	draw_rect(rect, alpha_color(border, 0.92), false, 2.0)
-	draw_rect(Rect2(rect.position, Vector2(rect.size.x, 4)), alpha_color(PANEL_GLOW, 0.42))
+	draw_rect(Rect2(rect.position, Vector2(rect.size.x, 4)), alpha_color(TEXT, 0.08))
+	draw_line(rect.position + Vector2(0, rect.size.y - 1), rect.position + Vector2(rect.size.x, rect.size.y - 1), alpha_color(Color.BLACK, 0.25), 1.0)
+	draw_line(rect.position + Vector2(rect.size.x - 1, 0), rect.position + Vector2(rect.size.x - 1, rect.size.y), alpha_color(Color.BLACK, 0.25), 1.0)
 
 
 func draw_card_title(rect, text, color):
@@ -1216,6 +1254,22 @@ func alpha_color(color, alpha):
 	return Color(color.r, color.g, color.b, alpha)
 
 
+func draw_corner_bolts(rect):
+	var points = [
+		rect.position + Vector2(12, 12),
+		Vector2(rect.position.x + rect.size.x - 12, rect.position.y + 12),
+		Vector2(rect.position.x + 12, rect.position.y + rect.size.y - 12),
+		rect.position + rect.size - Vector2(12, 12)
+	]
+	for point in points:
+		draw_circle(point, 3.0, alpha_color(Color.BLACK, 0.32))
+		draw_circle(point, 1.6, alpha_color(TEXT, 0.2))
+
+
+func tile_wear(tile):
+	return abs(sin(float(tile.x) * 1.91 + float(tile.y) * 1.37 + float(tile.x * tile.y) * 0.11))
+
+
 func unit_dir(dir):
 	if dir == Vector2i.ZERO:
 		return Vector2.RIGHT
@@ -1268,12 +1322,12 @@ func objective_distance_text():
 
 func objective_summary():
 	if all_hacked():
-		return "Extraction gate is live. Get to the exit."
+		return "The exit door is unlocked. Move to the marked exit."
 	if hack_target != null:
-		return "Breach running. Hold your angle for 1.0 seconds."
+		return "Computer access in progress. Hold your position."
 	if terminal_in_front() != null:
-		return "Terminal in reach. Hold steady to start the breach."
-	return "Sweep the remaining terminals before the Warden converges."
+		return "Computer in reach. Hold steady to start access."
+	return "Clear the remaining rooms before the Warden converges."
 
 
 func pretty_ai_state():
@@ -1345,28 +1399,28 @@ func route_text():
 
 func status_banner_text():
 	if result_text == "GHOST WINS":
-		return "Vault compromised. Extraction confirmed."
+		return "Objective complete. The operator reached the exit."
 	if result_text == "WARDEN WINS":
-		return "Security locked the trace. Mission failed."
+		return "Security made visual contact. Mission failed."
 	if hack_target != null:
-		return "Breaching terminal. Hold position and maintain your facing."
+		return "Accessing computer. Hold position and keep your facing."
 	if all_hacked():
-		return "All terminals breached. Reach the extraction gate now."
+		return "All computers accessed. Reach the exit door now."
 	if signal_timer > 0.0:
-		return "Noise trace active. Break sight lines and displace immediately."
+		return "Noise trace active. Break line of sight and move immediately."
 	if terminal_in_front() != null:
-		return "Terminal ready. Pause here to auto-breach."
-	return "Stay quiet, clear the terminals, and never let the Warden see you."
+		return "Computer ready. Pause here to begin access."
+	return "Move quietly through the rooms and stay out of the Warden's view."
 
 
 func status_hint_text():
 	if ghost_mode == GHOST_MODE_AI:
-		return "AI pilot is pathing for the objective while managing risk and distance."
+		return "AI pilot is moving between rooms while balancing distance and exposure."
 	if hack_target != null:
-		return "You can cancel the breach by turning away or stepping off the approach."
+		return "You can cancel the access by turning away or stepping off the computer."
 	if all_hacked():
-		return "The exit is the green extraction tile marked EX inside the vault."
-	return "Sleep chambers are hard cover. Sprint only when you can absorb the noise."
+		return "The exit is the marked door inside the right side of the floor plan."
+	return "Pod rooms are hard cover. Sprint only when you can absorb the noise."
 
 
 func status_banner_color():
@@ -1385,8 +1439,8 @@ func status_banner_color():
 
 func end_screen_subtitle():
 	if result_text == "GHOST WINS":
-		return "The vault was breached before security could close the lane."
-	return "The Warden confirmed visual contact and collapsed the operation."
+		return "Every computer was accessed before security closed the floor."
+	return "The Warden confirmed visual contact and stopped the operation."
 
 
 func short_mode_name():
