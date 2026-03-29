@@ -3,8 +3,19 @@ extends Node2D
 const TILE_SIZE = 40
 const GRID_W = 20
 const GRID_H = 15
-const SCREEN_W = GRID_W * TILE_SIZE
-const SCREEN_H = GRID_H * TILE_SIZE
+const WORLD_W = GRID_W * TILE_SIZE
+const WORLD_H = GRID_H * TILE_SIZE
+
+const FRAME_MARGIN = 28
+const HEADER_H = 72
+const HEADER_GAP = 14
+const PANEL_GAP = 24
+const SIDEBAR_W = 320
+const FOOTER_H = 92
+const WORLD_OFFSET_X = FRAME_MARGIN
+const WORLD_OFFSET_Y = FRAME_MARGIN + HEADER_H + HEADER_GAP
+const SCREEN_W = WORLD_OFFSET_X + WORLD_W + PANEL_GAP + SIDEBAR_W + FRAME_MARGIN
+const SCREEN_H = WORLD_OFFSET_Y + WORLD_H + PANEL_GAP + FOOTER_H + FRAME_MARGIN
 
 const GHOST_STEP = 0.18
 const GHOST_RUN_STEP = 0.11
@@ -43,22 +54,33 @@ const DIRS = [
 	Vector2i(0, -1)
 ]
 
-const BG = Color(0.05, 0.06, 0.08)
-const FLOOR = Color(0.15, 0.16, 0.18)
-const GRID = Color(0.22, 0.23, 0.26)
-const WALL = Color(0.03, 0.03, 0.03)
-const SLEEP_ROOM = Color(0.1, 0.2, 0.23)
-const SLEEP_BORDER = Color(0.27, 0.54, 0.6)
-const GHOST = Color(0.95, 0.95, 0.95)
-const WARDEN = Color(0.92, 0.25, 0.25)
-const TERMINAL = Color(0.0, 0.84, 0.9)
-const HACKED = Color(0.95, 0.87, 0.16)
-const EXIT_OFF = Color(0.12, 0.25, 0.12)
-const EXIT_ON = Color(0.18, 0.86, 0.3)
-const TEXT = Color(0.95, 0.95, 0.95)
-const DIM = Color(0.72, 0.76, 0.8)
-const ALERT = Color(1.0, 0.6, 0.1)
-const SHADE = Color(0, 0, 0, 0.72)
+const BG = Color(0.02, 0.04, 0.07)
+const BG_ALT = Color(0.05, 0.08, 0.11)
+const PANEL = Color(0.07, 0.1, 0.14, 0.96)
+const PANEL_SOFT = Color(0.08, 0.12, 0.17, 0.92)
+const PANEL_BORDER = Color(0.23, 0.4, 0.48, 0.92)
+const PANEL_GLOW = Color(0.18, 0.82, 0.92, 0.35)
+const FLOOR = Color(0.09, 0.12, 0.16)
+const FLOOR_ALT = Color(0.12, 0.16, 0.2)
+const GRID = Color(0.24, 0.33, 0.37, 0.28)
+const WALL = Color(0.03, 0.04, 0.06)
+const WALL_EDGE = Color(0.13, 0.16, 0.2)
+const SLEEP_ROOM = Color(0.11, 0.22, 0.26)
+const SLEEP_BORDER = Color(0.29, 0.63, 0.7)
+const GHOST = Color(0.9, 0.96, 1.0)
+const GHOST_ACCENT = Color(0.28, 0.87, 0.98)
+const WARDEN = Color(0.96, 0.34, 0.31)
+const WARDEN_ACCENT = Color(1.0, 0.74, 0.31)
+const TERMINAL = Color(0.05, 0.84, 0.95)
+const HACKED = Color(1.0, 0.84, 0.24)
+const EXIT_OFF = Color(0.15, 0.27, 0.17)
+const EXIT_ON = Color(0.2, 0.9, 0.33)
+const TEXT = Color(0.95, 0.98, 1.0)
+const DIM = Color(0.69, 0.77, 0.82)
+const MUTED = Color(0.44, 0.53, 0.58)
+const ALERT = Color(1.0, 0.67, 0.16)
+const GOOD = Color(0.25, 0.88, 0.46)
+const SHADE = Color(0, 0, 0, 0.76)
 
 var font = null
 var rng = RandomNumberGenerator.new()
@@ -95,6 +117,9 @@ var ai_state = "PATROL"
 
 var heat = []
 var result_text = ""
+var ambient_time = 0.0
+var mission_time = 0.0
+var briefing_visible = true
 
 
 func _ready():
@@ -165,13 +190,18 @@ func reset_game():
 			row.append(0.0)
 		heat.append(row)
 
+	mission_time = 0.0
 	result_text = ""
 	queue_redraw()
 
 
 func _unhandled_input(event):
 	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode in [KEY_W, KEY_A, KEY_S, KEY_D, KEY_SHIFT, KEY_1, KEY_2, KEY_SPACE, KEY_ENTER]:
+			briefing_visible = false
+
 		if event.keycode == KEY_R:
+			briefing_visible = false
 			reset_game()
 		elif event.keycode == KEY_1:
 			set_ghost_mode(GHOST_MODE_HUMAN)
@@ -180,7 +210,13 @@ func _unhandled_input(event):
 
 
 func _process(delta):
+	ambient_time += delta
+	if briefing_visible:
+		queue_redraw()
+		return
+
 	if result_text == "":
+		mission_time += delta
 		cool_heat(delta)
 		update_ghost(delta)
 		update_warden(delta)
@@ -816,8 +852,17 @@ func check_end_state():
 		result_text = "GHOST WINS"
 
 
+func tile_rect(tile):
+	return Rect2(
+		WORLD_OFFSET_X + tile.x * TILE_SIZE,
+		WORLD_OFFSET_Y + tile.y * TILE_SIZE,
+		TILE_SIZE,
+		TILE_SIZE
+	)
+
+
 func tile_center(tile):
-	return Vector2(tile.x * TILE_SIZE + TILE_SIZE * 0.5, tile.y * TILE_SIZE + TILE_SIZE * 0.5)
+	return tile_rect(tile).position + Vector2(TILE_SIZE * 0.5, TILE_SIZE * 0.5)
 
 
 func actor_draw_position(current_tile, previous_tile, timer, duration):
@@ -828,87 +873,533 @@ func actor_draw_position(current_tile, previous_tile, timer, duration):
 
 
 func _draw():
-	draw_rect(Rect2(0, 0, SCREEN_W, SCREEN_H), BG)
+	draw_backdrop()
+	draw_header()
+	draw_world_frame()
 	draw_world()
-	draw_hud()
+	draw_sidebar()
+	draw_footer()
+	if briefing_visible:
+		draw_briefing_overlay()
 	if result_text != "":
 		draw_end_screen()
+
+
+func draw_backdrop():
+	draw_rect(Rect2(0, 0, SCREEN_W, SCREEN_H), BG)
+	draw_rect(Rect2(0, 0, SCREEN_W, SCREEN_H * 0.4), alpha_color(BG_ALT, 0.5))
+	for y in range(0, SCREEN_H, 24):
+		draw_line(Vector2(0, y), Vector2(SCREEN_W, y), alpha_color(TEXT, 0.018), 1.0)
+	for x in range(-SCREEN_H, SCREEN_W, 44):
+		draw_line(Vector2(x, 0), Vector2(x + SCREEN_H, SCREEN_H), alpha_color(PANEL_GLOW, 0.035), 1.0)
+
+
+func draw_header():
+	var rect = header_rect()
+	var rect_end = rect.position + rect.size
+	draw_panel(rect, PANEL, PANEL_BORDER)
+	draw_string(font, rect.position + Vector2(20, 30), "MARK47", HORIZONTAL_ALIGNMENT_LEFT, -1, 30, TEXT)
+	draw_string(font, rect.position + Vector2(20, 56), "CYBER VAULT // SILENT INFILTRATION", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, GHOST_ACCENT)
+	draw_chip(Rect2(rect.position.x + 250, rect.position.y + 18, 124, 26), ghost_mode_name().to_upper(), GHOST_ACCENT, true)
+	draw_chip(Rect2(rect_end.x - 170, rect.position.y + 18, 150, 26), "THREAT " + danger_label(), danger_color(), true)
+	draw_string(font, Vector2(rect_end.x - 196, rect.position.y + 34), "WARDEN " + short_ai_state(), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, ai_state_color())
+	draw_string(font, Vector2(rect_end.x - 196, rect.position.y + 56), "MISSION CLOCK  " + format_time(mission_time), HORIZONTAL_ALIGNMENT_LEFT, -1, 15, DIM)
+
+
+func draw_world_frame():
+	var outer = world_rect().grow(18)
+	var rect = world_rect()
+	var rect_end = rect.position + rect.size
+	draw_panel(outer, PANEL, PANEL_BORDER)
+	draw_rect(rect, alpha_color(Color(0.01, 0.02, 0.03), 0.55))
+	draw_line(rect.position + Vector2(14, 0), rect.position + Vector2(110, 0), alpha_color(PANEL_GLOW, 0.55), 2.0)
+	draw_line(rect.position + Vector2(0, 14), rect.position + Vector2(0, 110), alpha_color(PANEL_GLOW, 0.55), 2.0)
+	draw_line(Vector2(rect_end.x - 14, rect.position.y), Vector2(rect_end.x - 110, rect.position.y), alpha_color(PANEL_GLOW, 0.55), 2.0)
+	draw_line(Vector2(rect_end.x, rect.position.y + 14), Vector2(rect_end.x, rect.position.y + 110), alpha_color(PANEL_GLOW, 0.55), 2.0)
+	draw_line(Vector2(rect.position.x, rect_end.y - 14), Vector2(rect.position.x, rect_end.y - 110), alpha_color(PANEL_GLOW, 0.55), 2.0)
+	draw_line(Vector2(rect.position.x + 14, rect_end.y), Vector2(rect.position.x + 110, rect_end.y), alpha_color(PANEL_GLOW, 0.55), 2.0)
+	draw_line(Vector2(rect_end.x - 14, rect_end.y), Vector2(rect_end.x - 110, rect_end.y), alpha_color(PANEL_GLOW, 0.55), 2.0)
+	draw_line(Vector2(rect_end.x, rect_end.y - 14), Vector2(rect_end.x, rect_end.y - 110), alpha_color(PANEL_GLOW, 0.55), 2.0)
+	draw_string(font, rect.position + Vector2(18, -8), "VAULT GRID A17", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, GHOST_ACCENT)
+	draw_string(font, Vector2(rect_end.x - 112, rect_end.y + 18), "LOS // NOISE", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, MUTED)
 
 
 func draw_world():
 	for y in range(GRID_H):
 		for x in range(GRID_W):
-			var rect = Rect2(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
 			var tile = Vector2i(x, y)
+			var rect = tile_rect(tile)
 			if wall_lookup.has(tile):
 				draw_rect(rect, WALL)
+				draw_rect(rect.grow(-3), alpha_color(WALL_EDGE, 0.32))
 			else:
-				draw_rect(rect, FLOOR)
+				var floor_color = FLOOR if (x + y) % 2 == 0 else FLOOR_ALT
+				draw_rect(rect, floor_color)
 				draw_rect(rect, GRID, false, 1.0)
+				draw_rect(Rect2(rect.position + Vector2(3, 3), rect.size - Vector2(6, 6)), alpha_color(TEXT, 0.012), false, 1.0)
 				if sleep_lookup.has(tile):
-					draw_rect(rect.grow(-4), SLEEP_ROOM)
-					draw_rect(rect.grow(-4), SLEEP_BORDER, false, 1.0)
+					draw_rect(rect.grow(-4), alpha_color(SLEEP_ROOM, 0.95))
+					draw_rect(rect.grow(-5), alpha_color(SLEEP_BORDER, 0.6), false, 1.0)
+					draw_line(rect.position + Vector2(8, rect.size.y - 10), rect.position + Vector2(rect.size.x - 8, 10), alpha_color(SLEEP_BORDER, 0.2), 1.0)
 				var heat_value = float(heat[y][x])
 				if heat_value > 0.25:
 					var alpha = minf(0.22, heat_value * 0.03)
-					draw_rect(rect.grow(-9), Color(1.0, 0.45, 0.1, alpha))
+					draw_circle(tile_center(tile), 9.0 + heat_value * 2.4, alpha_color(ALERT, alpha))
 
 	for terminal in terminal_tiles:
-		var term_rect = Rect2(terminal.x * TILE_SIZE + 10, terminal.y * TILE_SIZE + 10, TILE_SIZE - 20, TILE_SIZE - 20)
-		if hacked_lookup.has(terminal):
-			draw_rect(term_rect, HACKED)
-		else:
-			draw_rect(term_rect, TERMINAL)
-		if hack_target == terminal:
-			draw_rect(term_rect.grow(4), ALERT, false, 2.0)
+		draw_terminal(terminal, terminal_tiles.find(terminal) + 1)
 
-	var exit_rect_local = Rect2(exit_tile.x * TILE_SIZE + 12, exit_tile.y * TILE_SIZE + 12, TILE_SIZE - 24, TILE_SIZE - 24)
-	if all_hacked():
-		draw_rect(exit_rect_local, EXIT_ON)
-	else:
-		draw_rect(exit_rect_local, EXIT_OFF)
-
-	if ai_state != "PATROL":
-		for tile in vision_tiles(warden_tile, warden_facing, WARDEN_VISION):
-			var cone_rect = Rect2(tile.x * TILE_SIZE + 14, tile.y * TILE_SIZE + 14, TILE_SIZE - 28, TILE_SIZE - 28)
-			draw_rect(cone_rect, Color(1.0, 0.1, 0.1, 0.08))
+	draw_exit_tile()
+	draw_vision_tiles()
+	draw_world_scanlines()
 
 	var ghost_pos = actor_draw_position(ghost_tile, ghost_prev_tile, ghost_timer, ghost_move_duration)
 	var warden_pos = actor_draw_position(warden_tile, warden_prev_tile, warden_timer, warden_move_duration)
-	draw_circle(ghost_pos, 12.0, GHOST)
-	draw_circle(warden_pos, 12.0, WARDEN)
+	draw_ghost_actor(ghost_pos)
+	draw_warden_actor(warden_pos)
 
 	if hack_target != null:
-		var center = ghost_pos
-		var back = Rect2(center.x - 20, center.y - 28, 40, 8)
-		draw_rect(back, Color(0, 0, 0))
-		var fill = clampf(hack_timer / HACK_TIME, 0.0, 1.0)
-		draw_rect(Rect2(back.position + Vector2(1, 1), Vector2(38 * fill, 6)), TERMINAL)
+		draw_hack_feedback(ghost_pos)
 
 
-func draw_hud():
-	draw_rect(Rect2(10, 10, SCREEN_W - 20, 98), Color(0, 0, 0, 0.48))
-	draw_string(font, Vector2(20, 34), "Cyber-Vault", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, TEXT)
-	draw_string(font, Vector2(20, 58), "Mode: " + ghost_mode_name(), HORIZONTAL_ALIGNMENT_LEFT, -1, 18, TEXT)
-	draw_string(font, Vector2(20, 80), "Hacked: " + str(hacked_lookup.size()) + "/" + str(terminal_tiles.size()) + "    Warden: " + ai_state, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, ALERT if ai_state != "PATROL" else TEXT)
-	draw_string(font, Vector2(380, 34), "1 Human  2 AI  R restart", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, TEXT)
+func draw_terminal(terminal, index):
+	var pulse = 0.5 + 0.5 * sin(ambient_time * 4.0 + float(index))
+	var rect = Rect2(terminal.x * TILE_SIZE + WORLD_OFFSET_X + 9, terminal.y * TILE_SIZE + WORLD_OFFSET_Y + 9, TILE_SIZE - 18, TILE_SIZE - 18)
+	var fill = HACKED if hacked_lookup.has(terminal) else Color(0.04, 0.25 + pulse * 0.18, 0.31 + pulse * 0.12)
+	var outline = HACKED if hacked_lookup.has(terminal) else TERMINAL
+	draw_rect(rect, fill)
+	draw_rect(rect.grow(4), alpha_color(outline, 0.28 + pulse * 0.1), false, 2.0)
+	draw_rect(Rect2(rect.position + Vector2(4, 4), rect.size - Vector2(8, 8)), alpha_color(TEXT, 0.07), false, 1.0)
+	draw_line(rect.position + Vector2(5, rect.size.y * 0.58), rect.position + Vector2(rect.size.x - 5, rect.size.y * 0.58), alpha_color(TEXT, 0.18), 1.0)
+	draw_string(font, rect.position + Vector2(5, 16), "T" + str(index), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, TEXT)
+	if hack_target == terminal:
+		draw_rect(rect.grow(7), alpha_color(ALERT, 0.8), false, 2.0)
+		draw_circle(tile_center(terminal), 18.0 + pulse * 5.0, alpha_color(ALERT, 0.12))
 
-	var objective = "Hack all terminals, then reach the exit without being seen."
-	if hack_target != null:
-		objective = "Ghost is auto-hacking. Hold still for 1.0s."
-	elif all_hacked():
-		objective = "Exit unlocked. Reach the green tile."
-	elif terminal_in_front() != null:
-		objective = "Facing a terminal auto-starts a 1.0s hack pause."
-	draw_string(font, Vector2(380, 58), objective, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, DIM)
-	var mode_hint = "WASD/Shift active in Human mode." if ghost_mode == GHOST_MODE_HUMAN else "AI Ghost uses tuned minimax to reach terminals and exit."
-	draw_string(font, Vector2(380, 80), mode_hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, DIM)
+
+func draw_exit_tile():
+	var pulse = 0.5 + 0.5 * sin(ambient_time * 3.2)
+	var fill = EXIT_ON if all_hacked() else EXIT_OFF
+	var rect = Rect2(exit_tile.x * TILE_SIZE + WORLD_OFFSET_X + 10, exit_tile.y * TILE_SIZE + WORLD_OFFSET_Y + 10, TILE_SIZE - 20, TILE_SIZE - 20)
+	draw_rect(rect, fill)
+	draw_rect(rect.grow(5), alpha_color(fill, 0.35 + pulse * 0.18), false, 2.0)
+	draw_string(font, rect.position + Vector2(4, 16), "EX", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, TEXT)
+
+
+func draw_vision_tiles():
+	if ai_state == "PATROL":
+		return
+	var pulse = 0.45 + 0.55 * sin(ambient_time * 7.0)
+	for tile in vision_tiles(warden_tile, warden_facing, WARDEN_VISION):
+		var rect = tile_rect(tile).grow(-10)
+		draw_rect(rect, alpha_color(WARDEN, 0.05 + pulse * 0.04))
+		draw_rect(rect, alpha_color(WARDEN_ACCENT, 0.14), false, 1.0)
+
+
+func draw_world_scanlines():
+	var rect = world_rect()
+	for y in range(0, int(rect.size.y), 14):
+		var start = rect.position + Vector2(0, y)
+		draw_line(start, start + Vector2(rect.size.x, 0), alpha_color(TEXT, 0.016), 1.0)
+
+
+func draw_ghost_actor(pos):
+	var facing = unit_dir(ghost_facing)
+	var side = Vector2(-facing.y, facing.x)
+	var body = PackedVector2Array([
+		pos + facing * 14.0,
+		pos + side * 10.0 + facing * 2.0,
+		pos - facing * 11.0,
+		pos - side * 10.0 + facing * 2.0
+	])
+	draw_circle(pos, 18.0 + (0.5 + 0.5 * sin(ambient_time * 5.0)) * 2.0, alpha_color(GHOST_ACCENT, 0.14))
+	draw_colored_polygon(body, alpha_color(GHOST, 0.96))
+	draw_circle(pos, 7.0, alpha_color(GHOST_ACCENT, 0.18))
+	draw_circle(pos + facing * 5.0, 3.0, GHOST_ACCENT)
+
+
+func draw_warden_actor(pos):
+	var facing = unit_dir(warden_facing)
+	var side = Vector2(-facing.y, facing.x)
+	var body = PackedVector2Array([
+		pos + facing * 17.0,
+		pos + side * 11.0,
+		pos - facing * 8.0 + side * 9.0,
+		pos - facing * 14.0,
+		pos - facing * 8.0 - side * 9.0,
+		pos - side * 11.0
+	])
+	draw_circle(pos, 20.0 + (0.5 + 0.5 * sin(ambient_time * 8.0)) * 1.8, alpha_color(WARDEN, 0.11))
+	draw_colored_polygon(body, alpha_color(WARDEN, 0.96))
+	draw_line(pos, pos + facing * 16.0, alpha_color(WARDEN_ACCENT, 0.95), 2.0)
+	draw_circle(pos + facing * 6.0, 3.0, WARDEN_ACCENT)
+
+
+func draw_hack_feedback(ghost_pos):
+	var target_center = tile_center(hack_target)
+	var pulse = 0.5 + 0.5 * sin(ambient_time * 8.0)
+	draw_line(ghost_pos, target_center, alpha_color(TERMINAL, 0.45 + pulse * 0.25), 2.0)
+	var back = Rect2(ghost_pos.x - 34, ghost_pos.y - 34, 68, 10)
+	draw_rect(back, alpha_color(Color(0, 0, 0), 0.9))
+	draw_rect(back, alpha_color(TERMINAL, 0.5), false, 1.0)
+	var fill = clampf(hack_timer / HACK_TIME, 0.0, 1.0)
+	draw_rect(Rect2(back.position + Vector2(2, 2), Vector2((back.size.x - 4) * fill, back.size.y - 4)), TERMINAL)
+
+
+func draw_sidebar():
+	var rect = sidebar_rect()
+	var inset = 16.0
+	var card_w = rect.size.x - inset * 2.0
+	var x = rect.position.x + inset
+	var y = rect.position.y + inset
+	draw_panel(rect, PANEL, PANEL_BORDER)
+	draw_mission_card(Rect2(x, y, card_w, 140))
+	y += 152.0
+	draw_systems_card(Rect2(x, y, card_w, 150))
+	y += 162.0
+	draw_intel_card(Rect2(x, y, card_w, 118))
+	y += 130.0
+	draw_controls_card(Rect2(x, y, card_w, 104))
+
+
+func draw_mission_card(rect):
+	draw_panel(rect, PANEL_SOFT, PANEL_BORDER)
+	draw_card_title(rect, "MISSION", TERMINAL)
+	draw_string(font, rect.position + Vector2(14, 52), "Breach every terminal and exfiltrate unseen.", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, TEXT)
+	draw_text_lines([
+		"Route: " + objective_summary(),
+		"Cover: sleep chambers block the Warden's vision.",
+		"Noise: sprinting and hacks leave a trace."
+	], rect.position + Vector2(14, 74), 14, 19, DIM)
+	var chip_y = rect.position.y + rect.size.y - 34
+	draw_chip(Rect2(rect.position.x + 14, chip_y, 124, 24), "1 HUMAN PILOT", GHOST_ACCENT, ghost_mode == GHOST_MODE_HUMAN)
+	draw_chip(Rect2(rect.position.x + 146, chip_y, 118, 24), "2 AI PILOT", GOOD, ghost_mode == GHOST_MODE_AI)
+
+
+func draw_systems_card(rect):
+	draw_panel(rect, PANEL_SOFT, PANEL_BORDER)
+	draw_card_title(rect, "SYSTEMS", ALERT)
+	var x = rect.position.x + 14
+	var y = rect.position.y + 48
+	var w = rect.size.x - 28
+	draw_progress_bar(Rect2(x, y, w, 16), "TERMINAL CONTROL", hack_ratio(), TERMINAL, str(hacked_lookup.size()) + "/" + str(terminal_tiles.size()))
+	y += 28
+	draw_progress_bar(Rect2(x, y, w, 16), "NOISE TRACE", noise_ratio(), ALERT, trace_text())
+	y += 28
+	draw_progress_bar(Rect2(x, y, w, 16), "STEALTH INTEGRITY", stealth_ratio(), GOOD, danger_label())
+	y += 28
+	draw_progress_bar(Rect2(x, y, w, 16), "ROUTE READINESS", route_ratio(), EXIT_ON if all_hacked() else GHOST_ACCENT, route_text())
+
+
+func draw_intel_card(rect):
+	draw_panel(rect, PANEL_SOFT, PANEL_BORDER)
+	draw_card_title(rect, "INTEL", GHOST_ACCENT)
+	var x = rect.position.x + 14
+	var y = rect.position.y + 52
+	draw_stat_line(Vector2(x, y), "Warden state", pretty_ai_state(), ai_state_color())
+	y += 22
+	draw_stat_line(Vector2(x, y), "Contact range", str(manhattan(ghost_tile, warden_tile)) + " tiles", TEXT)
+	y += 22
+	draw_stat_line(Vector2(x, y), "Objective path", objective_distance_text(), TEXT)
+	y += 22
+	draw_stat_line(Vector2(x, y), "Signal", "ACTIVE" if signal_timer > 0.0 else "CLEAR", ALERT if signal_timer > 0.0 else GOOD)
+
+
+func draw_controls_card(rect):
+	draw_panel(rect, PANEL_SOFT, PANEL_BORDER)
+	draw_card_title(rect, "CONTROLS", GOOD)
+	draw_text_lines([
+		"WASD move   Shift sprint",
+		"Face a terminal to auto-breach",
+		"1 human pilot   2 AI pilot   R reset"
+	], rect.position + Vector2(14, 48), 14, 18, DIM)
+
+
+func draw_footer():
+	var rect = footer_rect()
+	var right_x = rect.position.x + rect.size.x - 270
+	draw_panel(rect, PANEL, PANEL_BORDER)
+	draw_string(font, rect.position + Vector2(20, 34), status_banner_text(), HORIZONTAL_ALIGNMENT_LEFT, -1, 20, status_banner_color())
+	draw_string(font, rect.position + Vector2(20, 58), status_hint_text(), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, DIM)
+	draw_chip(Rect2(right_x, rect.position.y + 16, 118, 24), "MODE " + short_mode_name(), GHOST_ACCENT, true)
+	draw_chip(Rect2(right_x + 126, rect.position.y + 16, 126, 24), "STATE " + short_ai_state(), ai_state_color(), ai_state != "PATROL")
+	draw_string(font, Vector2(right_x, rect.position.y + 58), "Use cover, keep quiet, and chain clean breaches.", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, MUTED)
+
+
+func draw_briefing_overlay():
+	draw_rect(Rect2(0, 0, SCREEN_W, SCREEN_H), SHADE)
+	var rect = Rect2((SCREEN_W - 560) * 0.5, (SCREEN_H - 300) * 0.5, 560, 300)
+	draw_panel(rect, PANEL, PANEL_BORDER)
+	draw_string(font, rect.position + Vector2(24, 44), "DEPLOYMENT BRIEF", HORIZONTAL_ALIGNMENT_LEFT, -1, 28, TEXT)
+	draw_string(font, rect.position + Vector2(24, 72), "MARK47 is live inside the vault perimeter.", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, GHOST_ACCENT)
+	draw_text_lines([
+		"Hack every terminal before the extraction gate powers up.",
+		"Sleep chambers block vision, but sprinting and hacking both leave a trace.",
+		"Swap between human and AI pilot at any time with 1 and 2."
+	], rect.position + Vector2(24, 112), 16, 26, DIM)
+	draw_chip(Rect2(rect.position.x + 24, rect.position.y + 236, 240, 28), "SPACE OR MOVE TO DEPLOY", GOOD, true)
+	draw_string(font, rect.position + Vector2(24, 286), "The mission clock starts when you break cover.", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, MUTED)
 
 
 func draw_end_screen():
 	draw_rect(Rect2(0, 0, SCREEN_W, SCREEN_H), SHADE)
-	draw_string(font, Vector2(240, 288), result_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 44, TEXT)
-	draw_string(font, Vector2(292, 324), "Press R to restart", HORIZONTAL_ALIGNMENT_LEFT, -1, 22, DIM)
+	var rect = Rect2((SCREEN_W - 460) * 0.5, (SCREEN_H - 228) * 0.5, 460, 228)
+	var accent = GOOD if result_text == "GHOST WINS" else WARDEN
+	draw_panel(rect, PANEL, accent)
+	draw_string(font, rect.position + Vector2(24, 58), result_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 38, TEXT)
+	draw_string(font, rect.position + Vector2(24, 92), end_screen_subtitle(), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, alpha_color(accent, 0.95))
+	draw_text_lines([
+		"R restarts the run immediately.",
+		"1 and 2 still switch between human and AI pilot.",
+		"Use the mission card to plan a cleaner next route."
+	], rect.position + Vector2(24, 132), 14, 22, DIM)
+
+
+func draw_panel(rect, fill, border):
+	draw_rect(rect, fill)
+	draw_rect(rect, alpha_color(border, 0.92), false, 2.0)
+	draw_rect(Rect2(rect.position, Vector2(rect.size.x, 4)), alpha_color(PANEL_GLOW, 0.42))
+
+
+func draw_card_title(rect, text, color):
+	draw_string(font, rect.position + Vector2(14, 24), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, color)
+	draw_line(rect.position + Vector2(14, 32), rect.position + Vector2(rect.size.x - 14, 32), alpha_color(color, 0.22), 1.0)
+
+
+func draw_chip(rect, label, color, active):
+	var fill = alpha_color(color, 0.16 if active else 0.07)
+	var border = alpha_color(color, 0.9 if active else 0.35)
+	var text_color = color if active else DIM
+	draw_rect(rect, fill)
+	draw_rect(rect, border, false, 1.0)
+	draw_string(font, rect.position + Vector2(10, 18), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, text_color)
+
+
+func draw_progress_bar(rect, label, value, fill_color, value_text):
+	draw_string(font, rect.position + Vector2(0, -6), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, DIM)
+	draw_string(font, Vector2(rect.position.x + rect.size.x - 78, rect.position.y - 6), value_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, TEXT)
+	draw_rect(rect, alpha_color(Color(0, 0, 0), 0.6))
+	draw_rect(rect, alpha_color(fill_color, 0.25), false, 1.0)
+	var fill_w = maxf(0.0, (rect.size.x - 4.0) * clampf(value, 0.0, 1.0))
+	draw_rect(Rect2(rect.position + Vector2(2, 2), Vector2(fill_w, rect.size.y - 4.0)), fill_color)
+
+
+func draw_stat_line(position, label, value, value_color):
+	draw_string(font, position, label, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, MUTED)
+	draw_string(font, Vector2(position.x + 126, position.y), value, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, value_color)
+
+
+func draw_text_lines(lines, position, size, line_height, color):
+	var y = position.y
+	for line in lines:
+		draw_string(font, Vector2(position.x, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
+		y += line_height
+
+
+func header_rect():
+	return Rect2(FRAME_MARGIN, FRAME_MARGIN, SCREEN_W - FRAME_MARGIN * 2, HEADER_H)
+
+
+func world_rect():
+	return Rect2(WORLD_OFFSET_X, WORLD_OFFSET_Y, WORLD_W, WORLD_H)
+
+
+func sidebar_rect():
+	return Rect2(WORLD_OFFSET_X + WORLD_W + PANEL_GAP, WORLD_OFFSET_Y, SIDEBAR_W, WORLD_H)
+
+
+func footer_rect():
+	return Rect2(FRAME_MARGIN, WORLD_OFFSET_Y + WORLD_H + PANEL_GAP, SCREEN_W - FRAME_MARGIN * 2, FOOTER_H)
+
+
+func alpha_color(color, alpha):
+	return Color(color.r, color.g, color.b, alpha)
+
+
+func unit_dir(dir):
+	if dir == Vector2i.ZERO:
+		return Vector2.RIGHT
+	return Vector2(dir.x, dir.y).normalized()
+
+
+func hack_ratio():
+	if terminal_tiles.is_empty():
+		return 0.0
+	return float(hacked_lookup.size()) / float(terminal_tiles.size())
+
+
+func noise_ratio():
+	var local_heat = float(heat[ghost_tile.y][ghost_tile.x]) / 6.0
+	return clampf(maxf(signal_timer / 3.0, local_heat), 0.0, 1.0)
+
+
+func danger_ratio():
+	if briefing_visible:
+		return 0.18
+	if result_text == "WARDEN WINS":
+		return 1.0
+	var proximity = clampf(1.0 - float(manhattan(ghost_tile, warden_tile) - 1) / 10.0, 0.0, 1.0)
+	var line = 1.0 if warden_detects_tile(ghost_tile) else 0.0
+	return clampf(maxf(line, maxf(signal_timer / 3.0, proximity * 0.8)), 0.0, 1.0)
+
+
+func stealth_ratio():
+	return clampf(1.0 - danger_ratio(), 0.0, 1.0)
+
+
+func route_ratio():
+	var distance = objective_distance()
+	if distance >= 1_000_000:
+		return 0.0
+	return clampf(1.0 - float(mini(distance, GRID_W + GRID_H)) / float(GRID_W + GRID_H), 0.0, 1.0)
+
+
+func objective_distance():
+	ghost_distance_cache.clear()
+	return ghost_goal_distance(ghost_tile, ghost_facing)
+
+
+func objective_distance_text():
+	var distance = objective_distance()
+	if distance >= 1_000_000:
+		return "unknown"
+	return str(distance) + " steps"
+
+
+func objective_summary():
+	if all_hacked():
+		return "Extraction gate is live. Get to the exit."
+	if hack_target != null:
+		return "Breach running. Hold your angle for 1.0 seconds."
+	if terminal_in_front() != null:
+		return "Terminal in reach. Hold steady to start the breach."
+	return "Sweep the remaining terminals before the Warden converges."
+
+
+func pretty_ai_state():
+	match ai_state:
+		"CHASE":
+			return "Pursuing"
+		"INTERCEPT":
+			return "Intercepting"
+		"SEARCH":
+			return "Investigating"
+		_:
+			return "Patrolling"
+
+
+func short_ai_state():
+	match ai_state:
+		"CHASE":
+			return "CHASE"
+		"INTERCEPT":
+			return "INTERCEPT"
+		"SEARCH":
+			return "SEARCH"
+		_:
+			return "PATROL"
+
+
+func ai_state_color():
+	match ai_state:
+		"CHASE":
+			return ALERT
+		"INTERCEPT":
+			return WARDEN
+		"SEARCH":
+			return GHOST_ACCENT
+		_:
+			return GOOD
+
+
+func danger_label():
+	var value = danger_ratio()
+	if value >= 0.72:
+		return "HIGH"
+	if value >= 0.4:
+		return "MED"
+	return "LOW"
+
+
+func danger_color():
+	match danger_label():
+		"HIGH":
+			return WARDEN
+		"MED":
+			return ALERT
+		_:
+			return GOOD
+
+
+func trace_text():
+	if signal_timer > 0.0:
+		return str(snapped(signal_timer, 0.1)) + "s"
+	return "CLEAR"
+
+
+func route_text():
+	if all_hacked():
+		return "EXIT"
+	return objective_distance_text()
+
+
+func status_banner_text():
+	if result_text == "GHOST WINS":
+		return "Vault compromised. Extraction confirmed."
+	if result_text == "WARDEN WINS":
+		return "Security locked the trace. Mission failed."
+	if hack_target != null:
+		return "Breaching terminal. Hold position and maintain your facing."
+	if all_hacked():
+		return "All terminals breached. Reach the extraction gate now."
+	if signal_timer > 0.0:
+		return "Noise trace active. Break sight lines and displace immediately."
+	if terminal_in_front() != null:
+		return "Terminal ready. Pause here to auto-breach."
+	return "Stay quiet, clear the terminals, and never let the Warden see you."
+
+
+func status_hint_text():
+	if ghost_mode == GHOST_MODE_AI:
+		return "AI pilot is pathing for the objective while managing risk and distance."
+	if hack_target != null:
+		return "You can cancel the breach by turning away or stepping off the approach."
+	if all_hacked():
+		return "The exit is the green extraction tile marked EX inside the vault."
+	return "Sleep chambers are hard cover. Sprint only when you can absorb the noise."
+
+
+func status_banner_color():
+	if result_text == "GHOST WINS":
+		return GOOD
+	if result_text == "WARDEN WINS":
+		return WARDEN
+	if hack_target != null:
+		return TERMINAL
+	if all_hacked():
+		return EXIT_ON
+	if signal_timer > 0.0:
+		return ALERT
+	return TEXT
+
+
+func end_screen_subtitle():
+	if result_text == "GHOST WINS":
+		return "The vault was breached before security could close the lane."
+	return "The Warden confirmed visual contact and collapsed the operation."
+
+
+func short_mode_name():
+	if ghost_mode == GHOST_MODE_AI:
+		return "AI"
+	return "HUMAN"
+
+
+func format_time(total_seconds):
+	var total = int(total_seconds)
+	var minutes = total / 60
+	var seconds = total % 60
+	return "%02d:%02d" % [minutes, seconds]
 
 
 func ghost_mode_name():
