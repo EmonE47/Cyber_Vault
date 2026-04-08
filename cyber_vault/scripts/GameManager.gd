@@ -7,6 +7,7 @@ extends Node
 
 # ─── Signals ─────────────────────────────────────────────────────────────────
 signal terminal_hacked(terminal_id: int, world_pos: Vector2)
+signal hacking_started(terminal_id: int, world_pos: Vector2)
 signal alarm_triggered(world_pos: Vector2)
 signal alert_level_changed(new_level: int)
 signal ghost_escaped()
@@ -34,6 +35,9 @@ var winner          : String     = ""
 var heatmap : Array = []
 
 var _decay_timer: float = 0.0
+var _last_hacking_clue_ms: int = -100000
+
+const HACKING_CLUE_COOLDOWN_MS := 1200
 
 # ─── Ready ───────────────────────────────────────────────────────────────────
 func _ready() -> void:
@@ -70,6 +74,18 @@ func end_game(w: String) -> void:
 		print("[GameManager] Warden WINS — Ghost captured!")
 
 # ─── Terminal System ──────────────────────────────────────────────────────────
+func on_hacking_started(tid: int, wpos: Vector2) -> void:
+	# Corner case protection: repeated hack start/abort loops should not flood clues.
+	var now_ms := Time.get_ticks_msec()
+	if now_ms - _last_hacking_clue_ms < HACKING_CLUE_COOLDOWN_MS:
+		return
+	_last_hacking_clue_ms = now_ms
+
+	hacking_started.emit(tid, wpos)
+	_set_alert(AlertLevel.SUSPICIOUS)
+	_add_heat_world(wpos, 0.55, 4)
+	print("[GameManager] Hacking clue from terminal %d at %s" % [tid, str(world_to_cell(wpos))])
+
 func on_terminal_hacked(tid: int, wpos: Vector2) -> void:
 	terminals_hacked += 1
 	terminal_hacked.emit(tid, wpos)

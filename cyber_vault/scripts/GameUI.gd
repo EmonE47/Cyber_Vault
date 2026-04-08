@@ -24,6 +24,7 @@ func _ready() -> void:
 	z_index = 20
 	GameManager.terminal_hacked.connect(_on_terminal_hacked)
 	GameManager.alert_level_changed.connect(_on_alert_changed)
+	GameManager.ghost_caught.connect(_on_ghost_caught)
 	GameManager.game_over.connect(_on_game_over)
 	set_process(true)
 
@@ -187,6 +188,10 @@ func _on_alert_changed(level: int) -> void:
 func _on_game_over(w: String) -> void:
 	_game_over = true
 	_winner    = w
+
+func _on_ghost_caught() -> void:
+	_game_over = true
+	_winner = "Warden"
 
 func _alert_color() -> Color:
 	match GameManager.alert_level:

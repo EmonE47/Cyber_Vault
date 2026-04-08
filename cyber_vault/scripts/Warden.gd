@@ -14,11 +14,12 @@ extends Node2D
 # ─── Constants ────────────────────────────────────────────────────────────────
 const TS            := GameManager.TILE_SIZE
 const PATROL_SPEED  := 0.30   # seconds per tile (slow patrol)
-const CHASE_SPEED   := 0.15   # faster when chasing
+const CHASE_SPEED   := 0.20   # faster when chasing
 const SEARCH_SPEED  := 0.25
-const CATCH_DIST    := 1.5    # cells — catching distance
+const CATCH_DIST    := 1.4   # cells — catching distance
 const FOV_ANGLE_DEG := 90.0   # degrees
 const CATCH_RADIUS  : float = 1.4
+const SEARCH_LOOP_LIMIT := 5
 
 # ─── Exposed to Ghost.gd ──────────────────────────────────────────────────────
 var fov_range : int = 6        # cells the Warden can see forward
@@ -32,7 +33,7 @@ var level    : Node2D
 var ghost    : Node2D   # Set by Level after both spawned
 
 # ─── Position ─────────────────────────────────────────────────────────────────
-var cell      : Vector2i = Level.WARDEN_SPAWN
+var cell      : Vector2i = Vector2i(1, 14)
 var facing    : Facing   = Facing.RIGHT
 var path      : Array[Vector2i] = []
 var move_timer: float = 0.0
@@ -43,6 +44,10 @@ var state       : State   = State.PATROL
 var last_seen   : Vector2i = Vector2i(-1, -1)   # Ghost's last known cell
 var target_cell : Vector2i = Vector2i(-1, -1)
 var search_cells: Array[Vector2i] = []
+var memory_locked_until_terminal_hacked: bool = false
+var _ghost_was_in_safe_room: bool = false
+var _last_search_hot: Vector2i = Vector2i(-1, -1)
+var _same_search_hot_count: int = 0
 
 # ─── Minimax config ──────────────────────────────────────────────────────────
 const MINIMAX_DEPTH := 4      # Look-ahead depth (2 full rounds each)
@@ -59,11 +64,14 @@ var anim_tick : float = 0.0
 
 # ─── Ready ────────────────────────────────────────────────────────────────────
 func _ready() -> void:
+	if level != null and level.has_method("get_warden_spawn"):
+		cell = level.get_warden_spawn()
 	position = GameManager.cell_to_world_center(cell)
 	z_index  = 4
 	_build_patrol_route()
 	GameManager.game_over.connect(_on_game_over)
 	GameManager.alarm_triggered.connect(_on_alarm)
+	GameManager.hacking_started.connect(_on_hacking_started)
 	GameManager.terminal_hacked.connect(_on_terminal_hacked)
 
 	await get_tree().create_timer(0.8).timeout
@@ -72,6 +80,11 @@ func _ready() -> void:
 
 # ─── Patrol Route ─────────────────────────────────────────────────────────────
 func _build_patrol_route() -> void:
+	if level != null and level.has_method("get_dynamic_patrol_route"):
+		patrol_route = level.get_dynamic_patrol_route()
+		if not patrol_route.is_empty():
+			return
+
 	# Warden patrols a loop covering all terminal areas
 	patrol_route = [
 		Vector2i(1, 1),    # Near T1
@@ -93,6 +106,7 @@ func _process(delta: float) -> void:
 	anim_tick += delta
 	_update_fov_polygon()
 	_check_catch()
+	_update_safe_room_memory_state()
 	_check_vision()
 	_update_ai(delta)
 	queue_redraw()
@@ -123,6 +137,8 @@ func _do_patrol() -> void:
 	_step()
 
 func _plan_patrol() -> void:
+	if patrol_route.is_empty():
+		patrol_route = [cell]
 	var target := patrol_route[patrol_idx % patrol_route.size()]
 	patrol_idx += 1
 	path = level.find_path(cell, target)
@@ -144,7 +160,10 @@ func _do_chase() -> void:
 		# Lost the Ghost — switch to search
 		print("[Warden] Lost ghost! Switching to SEARCH")
 		state = State.SEARCH
-		_plan_search_from(last_seen)
+		var anchor := last_seen
+		if memory_locked_until_terminal_hacked or not _is_valid_search_cell(anchor):
+			anchor = cell
+		_plan_search_from(anchor)
 		return
 
 	# ── MINIMAX: compute best intercept move ──────────────────────────────────
@@ -209,8 +228,9 @@ func _evaluate(warden_c: Vector2i, ghost_c: Vector2i) -> float:
 	var score   := 20.0 - dist   # Closer = higher score
 
 	# Bonus for blocking path to exit
-	var exit_dist_ghost  := float((ghost_c - Level.EXIT_CELL).length())
-	var exit_dist_warden := float((warden_c - Level.EXIT_CELL).length())
+	var exit := _exit_cell()
+	var exit_dist_ghost  := float((ghost_c - exit).length())
+	var exit_dist_warden := float((warden_c - exit).length())
 	if exit_dist_warden < exit_dist_ghost:
 		score += 5.0   # Warden is between Ghost and exit
 
@@ -220,7 +240,7 @@ func _evaluate(warden_c: Vector2i, ghost_c: Vector2i) -> float:
 	return score
 
 func _is_caught(warden_c: Vector2i, ghost_c: Vector2i) -> bool:
-	return (warden_c - ghost_c).length() < CATCH_RADIUS
+	return (warden_c - ghost_c).length() <= CATCH_DIST
 
 # ─── Search (heatmap-guided) ──────────────────────────────────────────────────
 func _do_search() -> void:
@@ -228,9 +248,25 @@ func _do_search() -> void:
 	if path.is_empty() or cell == target_cell:
 		# Reached this search point — pick next hottest cell
 		var hot := GameManager.hottest_near(cell, 7)
+		if hot == _last_search_hot:
+			_same_search_hot_count += 1
+		else:
+			_same_search_hot_count = 0
+		_last_search_hot = hot
+
+		if _same_search_hot_count >= SEARCH_LOOP_LIMIT:
+			_same_search_hot_count = 0
+			state = State.PATROL
+			_plan_patrol()
+			return
+
 		if hot != cell:
 			target_cell = hot
 			path        = level.find_path(cell, hot)
+			if path.is_empty() and cell != hot:
+				state = State.PATROL
+				_plan_patrol()
+				return
 		else:
 			# Heatmap cold — return to patrol
 			state = State.PATROL
@@ -239,9 +275,18 @@ func _do_search() -> void:
 	_step()
 
 func _plan_search_from(start: Vector2i) -> void:
-	var hot := GameManager.hottest_near(start, 6)
+	var anchor := start
+	if not _is_valid_search_cell(anchor):
+		anchor = cell
+	var hot := GameManager.hottest_near(anchor, 6)
+	if not _is_valid_search_cell(hot):
+		hot = anchor
 	target_cell = hot
 	path        = level.find_path(cell, hot)
+	if path.is_empty() and cell != hot:
+		state = State.PATROL
+		_plan_patrol()
+		return
 	print("[Warden] Searching toward hottest cell %s" % str(hot))
 
 # ─── Movement Step ────────────────────────────────────────────────────────────
@@ -323,12 +368,13 @@ func _check_catch() -> void:
 	# Ghost is safe in sleep rooms
 	if level and level.is_sleep_room(ghost.cell):
 		return
-	if float((cell - ghost.cell).length()) <= CATCH_RADIUS:
+	if float((cell - ghost.cell).length()) <= CATCH_DIST:
 		print("[Warden] CAUGHT the Ghost!")
 		GameManager.end_game("Warden")
 
 # ─── Event Handlers ───────────────────────────────────────────────────────────
 func _on_alarm(wpos: Vector2) -> void:
+	memory_locked_until_terminal_hacked = false
 	var alarm_cell := GameManager.world_to_cell(wpos)
 	last_seen      = alarm_cell
 	if state != State.CHASE:
@@ -338,10 +384,47 @@ func _on_alarm(wpos: Vector2) -> void:
 		print("[Warden] Alarm! Investigating %s" % str(alarm_cell))
 
 func _on_terminal_hacked(tid: int, wpos: Vector2) -> void:
+	memory_locked_until_terminal_hacked = false
 	_on_alarm(wpos)
+
+func _on_hacking_started(tid: int, wpos: Vector2) -> void:
+	if memory_locked_until_terminal_hacked:
+		return
+	if ghost != null and _can_see_ghost():
+		return
+	if state == State.CHASE:
+		state = State.SEARCH
+	var clue_cell := GameManager.world_to_cell(wpos)
+	last_seen = clue_cell
+	state = State.INVESTIGATE
+	target_cell = clue_cell
+	path = level.find_path(cell, clue_cell)
+	print("[Warden] Hacking clue detected near %s" % str(clue_cell))
 
 func _on_game_over(_w: String) -> void:
 	set_process(false)
+
+func _update_safe_room_memory_state() -> void:
+	if ghost == null or level == null:
+		return
+	var ghost_cell_any = ghost.get("cell")
+	if not (ghost_cell_any is Vector2i):
+		return
+	var ghost_cell: Vector2i = ghost_cell_any
+	var ghost_in_safe: bool = level.is_sleep_room(ghost_cell)
+	if ghost_in_safe and not _ghost_was_in_safe_room and not memory_locked_until_terminal_hacked:
+		memory_locked_until_terminal_hacked = true
+		last_seen = Vector2i(-1, -1)
+		if state == State.CHASE or state == State.INVESTIGATE:
+			state = State.SEARCH
+			_plan_search_from(cell)
+		print("[Warden] Ghost entered safe room — last known location forgotten")
+	_ghost_was_in_safe_room = ghost_in_safe
+
+func _is_valid_search_cell(c: Vector2i) -> bool:
+	if level == null:
+		return false
+	return level.is_walkable(c)
 
 # ─── FOV Polygon ─────────────────────────────────────────────────────────────
 func _update_fov_polygon() -> void:
@@ -447,3 +530,8 @@ func _draw_shadow_ellipse(center: Vector2, radiusX: float, radiusY: float, color
 		var ang := float(i) / 16.0 * TAU
 		pts.append(center + Vector2(cos(ang)*radiusX, sin(ang)*radiusY))
 	draw_colored_polygon(pts, color)
+
+func _exit_cell() -> Vector2i:
+	if level != null and level.has_method("get_exit_cell"):
+		return level.get_exit_cell()
+	return Vector2i(17, 1)
