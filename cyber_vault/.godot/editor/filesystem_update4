@@ -1,0 +1,6 @@
+res://scripts/Level.gd
+res://scenes/Main.tscn
+res://scripts/Terminal.gd
+res://scripts/Ghost.gd
+res://scripts/Warden.gd
+res://scripts/GameUI.gd
