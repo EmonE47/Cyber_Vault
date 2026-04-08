@@ -172,9 +172,11 @@ func _input(event: InputEvent) -> void:
 		return
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_R or event.keycode == KEY_Q:
+			get_tree().paused = false
 			get_tree().reload_current_scene()
 		elif event.keycode == KEY_ESCAPE:
 			get_tree().quit()
+		get_tree().set_input_as_handled()
 
 func _on_terminal_hacked(_id: int, _pos: Vector2) -> void:
 	_terminals_label = "Terminals: %d / 3" % GameManager.terminals_hacked
