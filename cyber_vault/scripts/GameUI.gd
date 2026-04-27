@@ -14,11 +14,15 @@ var _game_over       : bool    = false
 var _winner          : String  = ""
 var _hud_timer       : float   = 0.0
 var _blink           : bool    = true
+var _dragging_volume : bool    = false
 
 # Drawn fonts — small pixel rects
 const CHAR_W := 6
 const CHAR_H := 8
 const CHARS  : Dictionary = {}   # No font needed, draw with draw_string via fallback
+
+const VOLUME_SLIDER_POS := Vector2(604.0, 6.0)
+const VOLUME_SLIDER_SIZE := Vector2(188.0, 16.0)
 
 func _ready() -> void:
 	z_index = 20
@@ -95,6 +99,8 @@ func _draw_hud() -> void:
 	if GameManager.alert_level == GameManager.AlertLevel.ALARM and _blink:
 		draw_circle(Vector2(570, 13), 5, a_col)
 
+	_draw_volume_slider()
+
 	# ── Ghost status (bottom-left) ────────────────────────────────────────────
 	draw_rect(Rect2(0, H-30, 200, 30), Color(0.04, 0.06, 0.12, 0.85))
 	draw_rect(Rect2(0, H-30, 200, 1),  Color(0.0, 0.7, 0.6, 0.5))
@@ -169,6 +175,20 @@ func _draw_game_over() -> void:
 				   Vector2(px + 55, py + 175), Color(0.0, 0.85, 1.0))
 
 func _input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			var hit_rect := _volume_slider_rect().grow(6.0)
+			if hit_rect.has_point(event.position):
+				_dragging_volume = true
+				_set_volume_from_mouse(event.position.x)
+				get_viewport().set_input_as_handled()
+		else:
+			_dragging_volume = false
+
+	if event is InputEventMouseMotion and _dragging_volume:
+		_set_volume_from_mouse(event.position.x)
+		get_viewport().set_input_as_handled()
+
 	if not _game_over:
 		return
 	if event is InputEventKey and event.pressed:
@@ -220,6 +240,36 @@ func _draw_text(text: String, pos: Vector2, col: Color, scale: float = 1.0) -> v
 
 func _draw_text_large(text: String, pos: Vector2, col: Color, scale: float) -> void:
 	_draw_text(text, pos, col, scale)
+
+func _draw_volume_slider() -> void:
+	var rect := _volume_slider_rect()
+	var vol := GameManager.get_master_volume()
+
+	draw_rect(rect, Color(0.03, 0.05, 0.09, 0.95))
+	draw_rect(rect, Color(0.0, 0.7, 1.0, 0.40), false)
+
+	var groove := Rect2(rect.position + Vector2(4, 5), Vector2(rect.size.x - 8, 6))
+	draw_rect(groove, Color(0.15, 0.22, 0.30, 1.0))
+
+	var fill_w := (groove.size.x) * vol
+	if fill_w > 0.0:
+		draw_rect(Rect2(groove.position, Vector2(fill_w, groove.size.y)), Color(0.0, 0.92, 0.64, 1.0))
+
+	var knob_x := groove.position.x + fill_w
+	draw_rect(Rect2(knob_x - 2.0, rect.position.y + 3.0, 4.0, 10.0), Color(0.95, 1.0, 1.0, 0.95))
+
+	_draw_text("VOL", Vector2(rect.position.x - 30.0, rect.position.y + 1.0), Color(0.5, 0.85, 1.0))
+
+func _volume_slider_rect() -> Rect2:
+	return Rect2(VOLUME_SLIDER_POS, VOLUME_SLIDER_SIZE)
+
+func _set_volume_from_mouse(mouse_x: float) -> void:
+	var rect := _volume_slider_rect()
+	var groove_x := rect.position.x + 4.0
+	var groove_w := rect.size.x - 8.0
+	var t := (mouse_x - groove_x) / maxf(1.0, groove_w)
+	GameManager.set_master_volume(clampf(t, 0.0, 1.0))
+	queue_redraw()
 
 # ── Event handlers ────────────────────────────────────────────────────────────
 func _on_terminals_changed() -> void:
